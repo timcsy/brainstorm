@@ -1,0 +1,18 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "啟動腦力激盪平台",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"-m",
+				"http.server",
+				"8000"
+			],
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}

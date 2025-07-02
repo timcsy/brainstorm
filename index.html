@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>腦力激盪平台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- 導航欄 -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="#">
+                    <i class="fas fa-lightbulb me-2"></i>腦力激盪平台
+                </a>
+                <div class="navbar-nav ms-auto">
+                    <button class="btn btn-outline-light" id="joinRoomBtn">
+                        <i class="fas fa-sign-in-alt me-2"></i>加入聊天室
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主要內容區 -->
+        <div class="container mt-4">
+            <!-- 加入聊天室模態框 -->
+            <div class="modal fade" id="joinRoomModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">加入腦力激盪聊天室</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="joinRoomForm">
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">顯示名稱</label>
+                                    <input type="text" class="form-control" id="username" placeholder="輸入你的名稱">
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="isAnonymous">
+                                    <label class="form-check-label" for="isAnonymous">
+                                        匿名參與
+                                    </label>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="button" class="btn btn-primary" id="confirmJoinBtn">加入</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 未加入聊天室時的歡迎畫面 -->
+            <div id="welcomeScreen" class="text-center py-5">
+                <div class="row justify-content-center">
+                    <div class="col-md-8">
+                        <i class="fas fa-users fa-5x text-primary mb-4"></i>
+                        <h1 class="display-4 mb-3">歡迎來到腦力激盪平台</h1>
+                        <p class="lead mb-4">
+                            這是一個讓大家一起思考、創造和分享想法的地方。<br>
+                            加入聊天室後，你可以提出問題、回答問題，並為喜歡的內容點讚。
+                        </p>
+                        <button class="btn btn-primary btn-lg" onclick="document.getElementById('joinRoomBtn').click()">
+                            <i class="fas fa-rocket me-2"></i>開始腦力激盪
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主要聊天室界面 -->
+            <div id="chatRoomScreen" class="d-none">
+                <div class="row">
+                    <!-- 左側問題列表 -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-question-circle me-2"></i>問題列表
+                                </h5>
+                                <button class="btn btn-sm btn-primary" id="addQuestionBtn">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="questionsList" class="list-group list-group-flush">
+                                    <!-- 問題列表將動態載入 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右側答案區域 -->
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0" id="selectedQuestionTitle">
+                                    <i class="fas fa-comments me-2"></i>請選擇一個問題查看回答
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="noQuestionSelected" class="text-center text-muted py-5">
+                                    <i class="fas fa-arrow-left fa-3x mb-3"></i>
+                                    <p>請從左側選擇一個問題來查看回答</p>
+                                </div>
+                                <div id="answerSection" class="d-none">
+                                    <!-- 回答輸入區 -->
+                                    <div class="mb-4">
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="answerInput" placeholder="輸入你的回答...">
+                                            <button class="btn btn-primary" id="submitAnswerBtn">
+                                                <i class="fas fa-paper-plane"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 回答列表 -->
+                                    <div id="answersList">
+                                        <!-- 回答將動態載入 -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增問題模態框 -->
+    <div class="modal fade" id="addQuestionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增問題</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addQuestionForm">
+                        <div class="mb-3">
+                            <label for="questionTitle" class="form-label">問題標題</label>
+                            <input type="text" class="form-control" id="questionTitle" placeholder="輸入問題標題" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="questionDescription" class="form-label">問題描述</label>
+                            <textarea class="form-control" id="questionDescription" rows="3" placeholder="詳細描述你的問題..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="confirmAddQuestionBtn">發布問題</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
