@@ -141,6 +141,17 @@ class BrainstormApp {
             this.filterQuestions(e.target.value);
         });
 
+        // 問題列表點擊事件委託
+        document.getElementById('questionsList').addEventListener('click', (e) => {
+            const questionItem = e.target.closest('.question-item');
+            if (questionItem && !e.target.closest('.like-btn')) {
+                const questionId = questionItem.getAttribute('data-question-id');
+                if (questionId) {
+                    this.selectQuestion(questionId);
+                }
+            }
+        });
+
         // 匿名選項變更
         document.getElementById('isAnonymous').addEventListener('change', (e) => {
             const usernameInput = document.getElementById('username');
@@ -315,7 +326,7 @@ class BrainstormApp {
 
         const questionsList = document.getElementById('questionsList');
         questionsList.innerHTML = questions.map((question, index) => `
-            <div class="question-item" onclick="app.selectQuestion('${question.id}')">
+            <div class="question-item" data-question-id="${question.id}">
                 <div class="question-title">${this.escapeHtml(question.title)}</div>
                 <div class="question-meta">
                     <small>by ${this.escapeHtml(question.author)} • ${this.formatDate(question.createdAt)}</small>
@@ -389,7 +400,12 @@ class BrainstormApp {
                 document.querySelectorAll('.question-item').forEach(item => {
                     item.classList.remove('active');
                 });
-                event.target.closest('.question-item').classList.add('active');
+                
+                // 找到對應的問題項目並標記為選中
+                const selectedItem = document.querySelector(`[data-question-id="${questionId}"]`);
+                if (selectedItem) {
+                    selectedItem.classList.add('active');
+                }
                 
                 // 載入答案
                 this.loadAnswers(questionId);
@@ -623,31 +639,6 @@ class BrainstormApp {
             case 'warning': return 'exclamation-triangle';
             case 'info': return 'info-circle';
             default: return 'info-circle';
-        }
-    }
-
-    filterQuestions(searchTerm) {
-        if (!searchTerm.trim()) {
-            this.renderQuestions([...this.questionsCache]);
-            return;
-        }
-
-        const filteredQuestions = this.questionsCache.filter(question => 
-            question.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            question.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            question.author.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-
-        this.renderQuestions(filteredQuestions);
-        
-        if (filteredQuestions.length === 0) {
-            const questionsList = document.getElementById('questionsList');
-            questionsList.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-search"></i>
-                    <p>沒有找到符合 "${this.escapeHtml(searchTerm)}" 的問題</p>
-                </div>
-            `;
         }
     }
 }
