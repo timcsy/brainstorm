@@ -88,6 +88,15 @@
                                 </button>
                             </div>
                             <div class="card-body p-0">
+                                <!-- 搜尋框 -->
+                                <div class="p-3 border-bottom">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control" id="questionSearch" placeholder="搜尋問題...">
+                                    </div>
+                                </div>
                                 <div id="questionsList" class="list-group list-group-flush">
                                     <!-- 問題列表將動態載入 -->
                                 </div>
@@ -97,6 +106,37 @@
 
                     <!-- 右側答案區域 -->
                     <div class="col-md-8">
+                        <!-- 統計面板 -->
+                        <div class="row mb-3 statistics-cards">
+                            <div class="col-md-4">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-question-circle fa-2x mb-2"></i>
+                                        <h4 class="mb-0" id="totalQuestions">0</h4>
+                                        <small>總問題數</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-comments fa-2x mb-2"></i>
+                                        <h4 class="mb-0" id="totalAnswers">0</h4>
+                                        <small>總回答數</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-heart fa-2x mb-2"></i>
+                                        <h4 class="mb-0" id="totalLikes">0</h4>
+                                        <small>總點讚數</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="card">
                             <div class="card-header">
                                 <h5 class="mb-0" id="selectedQuestionTitle">
@@ -130,6 +170,34 @@
                 </div>
             </div>
         </div>
+        
+        <!-- 幫助提示 -->
+        <div class="container mt-4">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="mb-2">
+                                <i class="fas fa-keyboard me-2"></i>快捷鍵提示
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        <kbd>Ctrl</kbd> + <kbd>N</kbd> 新增問題
+                                    </small>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        <kbd>Ctrl</kbd> + <kbd>Enter</kbd> 提交回答
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- 新增問題模態框 -->

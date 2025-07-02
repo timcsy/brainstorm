@@ -8,11 +8,16 @@ class BrainstormApp {
         this.questions = this.gun.get('brainstorm-questions');
         this.answers = this.gun.get('brainstorm-answers');
         
+        // 資料快取
+        this.questionsCache = [];
+        this.answersCache = [];
+        
         this.init();
     }
 
     init() {
         this.bindEvents();
+        this.setupNetworkMonitoring();
         this.loadQuestions();
         
         // 檢查是否已經加入聊天室
@@ -21,6 +26,81 @@ class BrainstormApp {
             this.currentUser = JSON.parse(userData);
             this.showChatRoom();
         }
+    }
+
+    setupNetworkMonitoring() {
+        // 檢查網路連接狀態
+        window.addEventListener('online', () => {
+            this.showNotification('網路連接已恢復', 'success');
+            this.reconnectGun();
+        });
+
+        window.addEventListener('offline', () => {
+            this.showNotification('網路連接中斷，部分功能可能受影響', 'warning');
+        });
+
+        // 設置快捷鍵
+        this.setupKeyboardShortcuts();
+
+        // 定期檢查 GUN 連接狀態
+        setInterval(() => {
+            this.checkGunConnection();
+        }, 30000); // 每30秒檢查一次
+    }
+
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + N: 新增問題
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n' && this.currentUser) {
+                e.preventDefault();
+                document.getElementById('addQuestionBtn').click();
+            }
+            
+            // Ctrl/Cmd + Enter: 提交回答
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                const answerInput = document.getElementById('answerInput');
+                if (document.activeElement === answerInput && answerInput.value.trim()) {
+                    e.preventDefault();
+                    this.submitAnswer();
+                }
+            }
+            
+            // Escape: 關閉模態框
+            if (e.key === 'Escape') {
+                const modals = document.querySelectorAll('.modal.show');
+                modals.forEach(modal => {
+                    const instance = bootstrap.Modal.getInstance(modal);
+                    if (instance) {
+                        instance.hide();
+                    }
+                });
+            }
+        });
+    }
+
+    reconnectGun() {
+        // 重新初始化 GUN 連接
+        this.gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
+        this.questions = this.gun.get('brainstorm-questions');
+        this.answers = this.gun.get('brainstorm-answers');
+        
+        // 重新載入資料
+        if (this.currentUser) {
+            this.loadQuestions();
+            if (this.currentQuestion) {
+                this.loadAnswers(this.currentQuestion.id);
+            }
+        }
+    }
+
+    checkGunConnection() {
+        // 簡單的連接檢查：嘗試寫入一個測試值
+        const testKey = 'connection-test-' + Date.now();
+        this.gun.get('connection-test').get(testKey).put(Date.now(), (ack) => {
+            if (ack.err) {
+                console.warn('GUN連接可能有問題:', ack.err);
+            }
+        });
     }
 
     bindEvents() {
@@ -54,6 +134,11 @@ class BrainstormApp {
             if (e.key === 'Enter') {
                 this.submitAnswer();
             }
+        });
+
+        // 問題搜尋
+        document.getElementById('questionSearch').addEventListener('input', (e) => {
+            this.filterQuestions(e.target.value);
         });
 
         // 匿名選項變更
@@ -191,24 +276,24 @@ class BrainstormApp {
         questionsList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
         // 從 GUN 載入問題
-        const questionsData = [];
+        this.questionsCache = [];
         
         this.questions.map().on((data, key) => {
             if (data && typeof data === 'object' && data.id) {
                 // 移除已存在的問題（避免重複）
-                const existingIndex = questionsData.findIndex(q => q.id === data.id);
+                const existingIndex = this.questionsCache.findIndex(q => q.id === data.id);
                 if (existingIndex !== -1) {
-                    questionsData[existingIndex] = data;
+                    this.questionsCache[existingIndex] = data;
                 } else {
-                    questionsData.push(data);
+                    this.questionsCache.push(data);
                 }
-                this.renderQuestions(questionsData);
+                this.renderQuestions([...this.questionsCache]);
             }
         });
 
         // 如果沒有問題，顯示空狀態
         setTimeout(() => {
-            if (questionsData.length === 0) {
+            if (this.questionsCache.length === 0) {
                 questionsList.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-question-circle"></i>
@@ -245,6 +330,45 @@ class BrainstormApp {
                 ${index < 3 ? `<div class="sort-indicator">${index + 1}</div>` : ''}
             </div>
         `).join('');
+        
+        // 更新統計資料
+        this.updateStatistics();
+    }
+
+    updateStatistics() {
+        const totalQuestions = this.questionsCache.length;
+        const totalAnswers = this.answersCache.length;
+        const totalLikes = this.questionsCache.reduce((sum, q) => sum + (q.likes || 0), 0) +
+                          this.answersCache.reduce((sum, a) => sum + (a.likes || 0), 0);
+
+        document.getElementById('totalQuestions').textContent = totalQuestions;
+        document.getElementById('totalAnswers').textContent = totalAnswers;
+        document.getElementById('totalLikes').textContent = totalLikes;
+    }
+
+    filterQuestions(searchTerm) {
+        if (!searchTerm.trim()) {
+            this.renderQuestions([...this.questionsCache]);
+            return;
+        }
+
+        const filteredQuestions = this.questionsCache.filter(question => 
+            question.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            question.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            question.author.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        this.renderQuestions(filteredQuestions);
+        
+        if (filteredQuestions.length === 0) {
+            const questionsList = document.getElementById('questionsList');
+            questionsList.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-search"></i>
+                    <p>沒有找到符合 "${this.escapeHtml(searchTerm)}" 的問題</p>
+                </div>
+            `;
+        }
     }
 
     selectQuestion(questionId) {
@@ -277,23 +401,23 @@ class BrainstormApp {
         const answersList = document.getElementById('answersList');
         answersList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
-        const answersData = [];
+        this.answersCache = [];
         
         // 載入此問題的答案
         this.answers.get(questionId).map().on((data, key) => {
             if (data && typeof data === 'object' && data.id) {
-                const existingIndex = answersData.findIndex(a => a.id === data.id);
+                const existingIndex = this.answersCache.findIndex(a => a.id === data.id);
                 if (existingIndex !== -1) {
-                    answersData[existingIndex] = data;
+                    this.answersCache[existingIndex] = data;
                 } else {
-                    answersData.push(data);
+                    this.answersCache.push(data);
                 }
-                this.renderAnswers(answersData);
+                this.renderAnswers([...this.answersCache]);
             }
         });
 
         setTimeout(() => {
-            if (answersData.length === 0) {
+            if (this.answersCache.length === 0) {
                 answersList.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-comment"></i>
@@ -324,6 +448,9 @@ class BrainstormApp {
                 </div>
             </div>
         `).join('');
+        
+        // 更新統計資料
+        this.updateStatistics();
     }
 
     submitAnswer() {
@@ -420,14 +547,16 @@ class BrainstormApp {
 
     isQuestionLiked(questionId) {
         if (!this.currentUser) return false;
-        // 這個方法需要在渲染時檢查，實際狀態從 GUN 獲取
-        return false;
+        // 從快取中檢查點讚狀態
+        const question = this.questionsCache?.find(q => q.id === questionId);
+        return question?.likedBy?.[this.currentUser.id] || false;
     }
 
     isAnswerLiked(answerId) {
         if (!this.currentUser) return false;
-        // 這個方法需要在渲染時檢查，實際狀態從 GUN 獲取
-        return false;
+        // 從快取中檢查點讚狀態
+        const answer = this.answersCache?.find(a => a.id === answerId);
+        return answer?.likedBy?.[this.currentUser.id] || false;
     }
 
     generateId() {
@@ -494,6 +623,31 @@ class BrainstormApp {
             case 'warning': return 'exclamation-triangle';
             case 'info': return 'info-circle';
             default: return 'info-circle';
+        }
+    }
+
+    filterQuestions(searchTerm) {
+        if (!searchTerm.trim()) {
+            this.renderQuestions([...this.questionsCache]);
+            return;
+        }
+
+        const filteredQuestions = this.questionsCache.filter(question => 
+            question.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            question.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            question.author.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        this.renderQuestions(filteredQuestions);
+        
+        if (filteredQuestions.length === 0) {
+            const questionsList = document.getElementById('questionsList');
+            questionsList.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-search"></i>
+                    <p>沒有找到符合 "${this.escapeHtml(searchTerm)}" 的問題</p>
+                </div>
+            `;
         }
     }
 }
